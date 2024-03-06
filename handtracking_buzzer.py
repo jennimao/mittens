@@ -48,17 +48,16 @@ with mp_hands.Hands(
 
         # upper right quadrant 
         if (hand_landmarks.landmark[9].x <= 0.5 and hand_landmarks.landmark[9].y <= 0.5):
-            print("UPPER RIGHT RECTANGLE")
+            print("UPPER RIGHT QUADRANT")
             color = (48, 48, 255) # red 
             ###################### 
-            # buzzer
+            # buzzer turns on 
             ######################  
             
             board.digital[9].write(1)
-            
-            # Wait for another second
-            time.sleep(1)
-            
+            time.sleep(0.1) 
+            board.digital[9].write(0)
+                        
         elif (hand_landmarks.landmark[9].x < 0.5 and hand_landmarks.landmark[9].y > 0.5):
             print("LOWER RIGHT QUADRANT")
             color = (48, 255, 48) # green

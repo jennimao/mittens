@@ -96,8 +96,8 @@ with mp_hands.Hands(
               ######################  
     
               board.digital[pin].write(1)
-              #time.sleep(0.01) 
-              board.digital[pin].write(0)
+              #time.sleep(0.02) 
+              #board.digital[pin].write(0)
              
           elif (hand_landmarks.landmark[landmark_key].x < 0.5 and hand_landmarks.landmark[landmark_key].y > 0.5):
               print("LOWER RIGHT QUADRANT")

@@ -1,22 +1,18 @@
-import time
 from pyfirmata import Arduino, util
+import time
 
-# Connect to the Arduino board
-board = Arduino('/dev/cu.usbmodem143301')
+# Define the pin connected to the buzzer
+buzzer_pin = 9  # Change this to match the actual pin number you're using
 
-# Set the buzzer pin to output
-board.digital[9].mode = 1
+# Connect to the Arduino
+board = Arduino('/dev/cu.usbmodem143301')  # Change this to match the port where your Arduino is connected
 
-# Loop indefinitely
+# Set the pin mode to OUTPUT
+board.digital[buzzer_pin].mode = 1
+
+# Main loop to continuously buzz the buzzer
 while True:
-    # Turn on the buzzer
-    board.digital[9].write(1)
-    
-    # Wait for 1 second
-    time.sleep(1)
-    
-    # Turn off the buzzer
-    board.digital[9].write(0)
-    
-    # Wait for another second
-    time.sleep(1)
+    board.digital[buzzer_pin].write(1)  # Turn the buzzer on 
+    time.sleep(0.0000001)  # Wait for a short duration (adjust as needed for desired frequency)
+    board.digital[buzzer_pin].write(0)  # Turn the buzzer off
+    time.sleep(0.0000001)  # Wait for a short duration

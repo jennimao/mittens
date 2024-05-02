@@ -94,10 +94,18 @@ with mp_hands.Hands(
               ###################### 
               # buzzer turns on 
               ######################  
+
+              if buzz_start_times[pin] is None:
+                buzz_start_times[pin] = time.time()
+                board.digital[pin].write(1)  # Turn on buzzer
+            
+              if time.time() - buzz_start_times[pin] >= buzz_duration:
+                  board.digital[pin].write(0)  # Turn off buzzer
+                  buzz_start_times[pin] = None
     
-              board.digital[pin].write(1)
+              #board.digital[pin].write(1)
               #time.sleep(0.01) 
-              board.digital[pin].write(0)
+              #board.digital[pin].write(0)
              
           elif (hand_landmarks.landmark[landmark_key].x < 0.5 and hand_landmarks.landmark[landmark_key].y > 0.5):
               print("LOWER RIGHT QUADRANT")

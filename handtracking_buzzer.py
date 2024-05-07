@@ -19,8 +19,11 @@ palm    = 7
 # middle finger tip = 12
 # ring finger tip = 16
 # pinky finger tip = 20
-# middle finger base / upper mid palm = 9
-landmarks = [4, 8, 12, 16, 20, 9]
+# base palm = 0 
+
+# middle finger base / upper mid palm = 9 --> NOT INCLUDED
+
+landmarks = [4, 8, 12, 16, 20, 0]
 buzzer_pins = [thumb, finger2, finger3, finger4, finger5, palm]
 
 finger_landmarks_dict = dict(zip(landmarks, buzzer_pins))

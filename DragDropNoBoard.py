@@ -28,6 +28,24 @@ projected_points = list()
 
     #height 720
     #width 1280
+
+def angle_between_vectors(v, w):
+    dot_product = np.dot(v, w)
+    v_magnitude = np.linalg.norm(v)
+    w_magnitude = np.linalg.norm(w)
+    angle = np.arccos(dot_product / (v_magnitude * w_magnitude))
+    return round(angle, 1)
+
+def calculateHandOreintation(landmarks):
+  ## calculating hand orientation
+  zeroPoint = np.asarray((float(landmarks[0].x), float(landmarks[0].y), float(landmarks[0].z)))
+  fivePoint = np.asarray((float(landmarks[5].x), float(landmarks[5].y), float(landmarks[5].z)))
+  sevtPoint = np.asarray((float(landmarks[17].x), float(landmarks[17].y), float(landmarks[17].z)))
+  points = np.asarray([zeroPoint,fivePoint,sevtPoint])
+  normal_vector = np.cross(points[2] - points[0], points[1] - points[2])
+  normal_vector /= np.linalg.norm(normal_vector)
+  return normal_vector
+
 def On_Square(start, end, x, y):
   grace_pixels = 15
   if abs(x - start[0]) < grace_pixels and ((abs(y - start[1]) < grace_pixels) or y < start[1]) and ((abs(y - end[1]) < grace_pixels) or y > end[1]):
@@ -60,6 +78,8 @@ def distance_point_to_line(point, line_point1, line_point2):
 
     numerator = abs(((y2 - y1) * x) + ((x1 - x2) * y) + (y1 * (x2 - x1) - (y2 - y1) * x1))
     denominator = math.sqrt((y2 - y1) ** 2 + (x1 - x2) ** 2)
+    if denominator == 0:
+      return 0
     distance = numerator / denominator
 
     return distance
@@ -201,10 +221,13 @@ def visionProcessing():
               #start, end = recalc_req(thumb_x - deltaX,thumb_y - deltaY, start, end)  
               #start = (round(start[0] + thumb_x - deltaX), round(start[1] + thumb_y - deltaY))
               #end = (round(end[0] + thumb_x - deltaX), round(end[1] + thumb_y - deltaY))
+              new_norm_vec = calculateHandOreintation(results.multi_hand_world_landmarks[0].landmark)
+              rendering_deltaa = angle_between_vectors(new_norm_vec, deltaA)
               rendering_deltax = thumb_x - deltaX
               rendering_deltay = thumb_y - deltaY
               deltaX = thumb_x
               deltaY = thumb_y
+              deltaA = new_norm_vec
               color = blue
               distance = new_dist
             else:
@@ -212,18 +235,13 @@ def visionProcessing():
               lock = False
               rendering_deltax = 0
               rendering_deltay = 0
+              rendering_deltaa = 0
           elif(on_square):
             lock = True
             distance = math.sqrt(math.pow((thumb_x - pointer_x),2) + math.pow((thumb_y - pointer_y),2))
             deltaX = thumb_x
             deltaY = thumb_y
-            ## calculating hand orientation
-            points = np.asarray(results.multi_hand_world_landmarks[0], results.multi_hand_world_landmarks[5], results.multi_hand_world_landmarks[17])
-            normal_vector = np.cross(points[2] - points[0], points[1] - points[2])
-            normal_vector /= np.linalg.norm(normal_vector)
-            print("norm vec", normal_vector)
-            #print("landmrk", results.multi_hand_world_landmarks[0])
-            #deltaA = results.results.multi_hand_world_landmarks[0]
+            deltaA = calculateHandOreintation(results.multi_hand_world_landmarks[0].landmark)
             color = blue
           else:
             color = red
@@ -258,7 +276,8 @@ def visionProcessing():
       #print(start)
       #print(end)
       cv2.rectangle(image, start, end, green, 2)
-      projected_points = projection.render_cube(image, rendering_deltax, rendering_deltay)
+      print("renderning delta", rendering_deltaa)
+      projected_points = projection.render_cube(image, rendering_deltax, rendering_deltay, rendering_deltaa)
       image_2 = cv2.flip(image, 1)
       cv2.putText(image_2, my_str_1, (50, 50),font, font_scale, font_color, thickness)
       cv2.putText(image_2, my_str_2, (50, 100),font, font_scale, font_color, thickness)

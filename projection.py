@@ -7,6 +7,8 @@ RED = (255, 0, 0)
 BLACK = (0, 0, 0)
 WIDTH, HEIGHT = 1280, 720
 circle_pos = [WIDTH/2, HEIGHT/2]
+angle_z = 90
+angle = 90
 
 
 #pygame.display.set_caption("3D projection in pygame!")
@@ -19,15 +21,17 @@ def connect_points(i, j, points, image):
             image, (round(points[i][0]), round(points[i][1])), (round(points[j][0]), round(points[j][1])),(255, 255, 255), 2)
 
 
-def render_cube(image, deltaX, deltaY):
+def render_cube(image, deltaX, deltaY, deltaA):
     global circle_pos
+    global angle_z
     scale = 100
 
     circle_pos = [round(circle_pos[0] + deltaX), round(circle_pos[1] + deltaY)]  # x, y
+    angle_z = angle_z + deltaA
     print(circle_pos)
     #circle_pos = [150 + 300, 150 + 450]  # x, y (cube pos)
 
-    angle = 90
+
 
     points = []
 
@@ -65,10 +69,9 @@ def render_cube(image, deltaX, deltaY):
 
     rotation_x = np.matrix([
         [1, 0, 0],
-        [0, cos(angle), -sin(angle)],
-        [0, sin(angle), cos(angle)],
+        [0, cos(angle_z), -sin(angle_z)],
+        [0, sin(angle_z), cos(angle_z)],
     ])
-    angle += 0.01
 
     i = 0
     for point in points:

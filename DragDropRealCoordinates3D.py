@@ -28,6 +28,12 @@ real_end = (4 - 7, 0)
 #real_end = (4 - 16.5, 7 - 11.9) #cm
 square_z = 38.1 #cm #15 inches
 
+rendering_deltax = 0
+rendering_deltay = 0
+rendering_deltaa = 0
+rendering_deltaz = 0
+
+
 ##calibration constants for camera
 #all in cm
 Z_MEASUREMENT = 7.8
@@ -109,6 +115,10 @@ def visionProcessing():
   global real_end
   global deltaZ
   global square_z
+  global rendering_deltay
+  global rendering_deltaa
+  global rendering_deltax
+  global rendering_deltaz
   
   #setting uo the media pipe handtracking utilities
   mp_drawing = mp.solutions.drawing_utils
@@ -212,9 +222,14 @@ def visionProcessing():
               #real_start = (round(real_start[0] + thumb_x - deltaX,1), round(real_start[1] + thumb_y - deltaY,1))
               #real_end =  (round(real_end[0] + thumb_x - deltaX,1), round(real_end[1] + thumb_y - deltaY,1))
               #square_z =  round(square_z + thumb_z - deltaZ,1)
+              
+              rendering_deltax = thumb_x - deltaX
+              rendering_deltay = thumb_y - deltaY
+              rendering_deltaz = thumb_z - deltaZ
               deltaX = thumb_x
               deltaY = thumb_y
               deltaZ = thumb_z
+              
               color = BLUE
               distance = new_dist
             else:
@@ -223,6 +238,9 @@ def visionProcessing():
               deltaX = 0
               deltaY = 0
               deltaZ = 0
+              rendering_deltax = 0
+              rendering_deltay = 0
+              rendering_deltaz = 0
 
           elif(on_square and wrist_pos[2] < 100):
             lock = True
@@ -233,6 +251,9 @@ def visionProcessing():
             color = BLUE
           else:
             color = RED
+            rendering_deltax = 0
+            rendering_deltay = 0
+            rendering_deltaz = 0
         for hand_landmarks in results.multi_hand_landmarks:
           for ids, landmrk in enumerate(hand_landmarks.landmark):
             mp_drawing.draw_landmarks(
@@ -247,7 +268,7 @@ def visionProcessing():
       print(pixel_start,pixel_end)
       cv2.rectangle(image, pixel_start, pixel_end, GREEN, 2)
       cv2.circle(image, (image_width//2, image_height//2) ,5, BLUE, 5)
-      projected_points = projection.render_cube(image, 0, 0, 0)
+      projected_points = projection.render_cube(image, rendering_deltax, rendering_deltay, rendering_deltaz,0)
       image_2 = cv2.flip(image, 1)
       my_str_3 = "Real start: (" + str(real_start[0]) + "," + str(real_start[1]) + "), Real end (" + str(real_end[0]) + "," + str(real_end[1]) + ")" + "z: " + str(square_z)
       cv2.putText(image_2, my_str_1, (50, 50),FONT, FONT_SCALE, FONT_COLOR, THICKNESS)
@@ -377,6 +398,8 @@ if __name__ =="__main__":
 
   #t1.start()
   t2.start()
+
+  projection.init()
 
   #t1.join()
   visionProcessing()

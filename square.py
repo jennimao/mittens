@@ -27,9 +27,12 @@ red = (0, 255, 0)
 green = (255, 0, 255)
 projected_points = list()
     #generate square
-
     #height 720
     #width 1280
+
+
+#my_device = serial.Serial("/dev/cu.usbmodem14301", 9600)
+
 
 
 ########################
@@ -38,7 +41,7 @@ projected_points = list()
 board = Arduino('/dev/cu.usbserial-14230')
 
 thumb   = 2 
-index   = 3
+index = 3
 finger3 = 4
 finger4 = 5
 finger5 = 6
@@ -54,7 +57,7 @@ palm    = 7
 
 # middle finger base / upper mid palm = 9 --> NOT INCLUDED
 
-landmarks = [4, 8, 12, 16, 20, 0]
+landmarks = [4, 8, 12, 16, 20, 0, 3, 7]
 buzzer_pins = [2, 3, 4, 5, 6, 7]
 
 # Set the buzzer pin to output
@@ -64,13 +67,13 @@ for pin in buzzer_pins:
 finger_landmarks_dict = dict(zip(landmarks, buzzer_pins))
 
 
-
-
-
-    
+########################
+# Calculating Rotation 
+########################    
 
 def angle_between_vectors(v, w):
     dot_product = np.dot(v, w)
+    print("dot product: ", dot_product)
     v_magnitude = np.linalg.norm(v)
     w_magnitude = np.linalg.norm(w)
     angle = np.arccos(dot_product / (v_magnitude * w_magnitude))
@@ -86,6 +89,7 @@ def calculateHandOreintation(landmarks):
   normal_vector /= np.linalg.norm(normal_vector)
   return normal_vector
 
+"""
 def On_Square(start, end, x, y):
   grace_pixels = 30
   if abs(x - start[0]) < grace_pixels and ((abs(y - start[1]) < grace_pixels) or y < start[1]) and ((abs(y - end[1]) < grace_pixels) or y > end[1]):
@@ -98,6 +102,26 @@ def On_Square(start, end, x, y):
     return True
   
   return False
+"""
+
+
+def On_Square(start, end, x, y): 
+    grace_threshold = 30
+    x1, y1 = start
+    x2, y2 = end
+    
+    if (x > x1 and x < x2 and
+        y > y1 and y < y2):
+        return True
+    
+    # check within grace threshold
+    if (x >= x1 - grace_threshold and x <= x2 + grace_threshold and
+        y >= y1 - grace_threshold and y <= y2 + grace_threshold):
+        return True
+  
+    return False
+
+    
 
 
 def distance_point_to_line(point, line_point1, line_point2):
@@ -190,8 +214,9 @@ def visionProcessing():
   font_color = (0, 0, 0)  # White color in BGR
   thickness = 2
 
-  cap = cv2.VideoCapture(0)
+  projected_points = projection.init()
 
+  cap = cv2.VideoCapture(0)
   with mp_hands.Hands(
       model_complexity=0,
       min_detection_confidence=0.5,
@@ -222,85 +247,89 @@ def visionProcessing():
       image.flags.writeable = True
       image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
       on_square = True
+      on_square_count = 0 
+
       if results.multi_hand_landmarks:
-        for hand_landmarks in results.multi_hand_landmarks:
-          for ids, landmrk in enumerate(hand_landmarks.landmark):
+        hand_landmarks = results.multi_hand_landmarks[0]
+        for ids in finger_landmarks_dict:
+            landmrk = hand_landmarks.landmark[ids]
             if ids == 0:
-              cx, cy = landmrk.x * image_width, landmrk.y*image_height
-              
-              plane_width = fov_h * (measured_z/z_measurement)
-              plane_height = fov_v * (measured_z/z_measurement)
-              
-              cx_real = (landmrk.x * plane_width) - (0.5 * plane_width)
-              cy_real = landmrk.y * plane_height - (0.5 * plane_height)
+                cx, cy = landmrk.x * image_width, landmrk.y*image_height
+                
+                plane_width = fov_h * (measured_z/z_measurement)
+                plane_height = fov_v * (measured_z/z_measurement)
+                
+                cx_real = (landmrk.x * plane_width) - (0.5 * plane_width)
+                cy_real = landmrk.y * plane_height - (0.5 * plane_height)
 
-              my_str_1 = "Pixel width, height:" + str(round(cx, 1)) + ", " + str(round(cy, 1))
-              my_str_2 = "Real width, height, z:" + str(round(cx_real,1) )+ ", " + str(round(cy_real, 1)) + ", " + str(round(measured_z,1))
-              #print("Real width, height:", cx_real, cy_real)
-            
-            if ids == 4 or ids == 8: #or ids == 16 or ids == 20:
-              cx, cy = landmrk.x * image_width, landmrk.y*image_height
-              #my_str_3 = "4 Pixel x, y:" + str(round(cx, 1)) + ", " + str(round(cy, 1))
-              
-              if projected_points:
-                if not on_Cube(projected_points,cx,cy):
-                  on_square = False
-              else:
-                on_square = False
-              #on_square = On_Square(start,end, cx,cy)
-              if ids == 4:
-                thumb_x = cx
-                thumb_y = cy
-              if ids == 8:
-                pointer_x = cx
-                pointer_y = cy
+                my_str_1 = "Pixel width, height:" + str(round(cx, 1)) + ", " + str(round(cy, 1))
+                my_str_2 = "Real width, height, z:" + str(round(cx_real,1) )+ ", " + str(round(cy_real, 1)) + ", " + str(round(measured_z,1))
+                #print("Real width, height:", cx_real, cy_real)
+            else: 
+                cx, cy = landmrk.x * image_width, landmrk.y*image_height
+                #my_str_3 = "4 Pixel x, y:" + str(round(cx, 1)) + ", " + str(round(cy, 1))
+                
+                if  On_Square(start, end, cx, cy):
+                    on_square_count += 1 
+    
+                print("on_square count ", str(on_square_count))
+                #on_square = On_Square(start,end, cx,cy)
+                if ids == 4:
+                    thumb_x = cx
+                    thumb_y = cy
+                if ids == 8:
+                    pointer_x = cx
+                    pointer_y = cy
 
-          if (lock):
+        if on_square_count >= 2: 
+            on_square = True
+        else: 
+            on_square = False
+        if (lock):
             new_dist = math.sqrt(math.pow((thumb_x - pointer_x),2) + math.pow((thumb_y - pointer_y),2))
             if math.floor(abs(distance - new_dist)) < 10 :
-              #start, end = recalc_req(thumb_x - deltaX,thumb_y - deltaY, start, end)  
-              #start = (round(start[0] + thumb_x - deltaX), round(start[1] + thumb_y - deltaY))
-              #end = (round(end[0] + thumb_x - deltaX), round(end[1] + thumb_y - deltaY))
-              new_norm_vec = calculateHandOreintation(results.multi_hand_world_landmarks[0].landmark)
-              rendering_deltaa = angle_between_vectors(new_norm_vec, deltaA)
-              rendering_deltax = thumb_x - deltaX
-              rendering_deltay = thumb_y - deltaY
-              deltaX = thumb_x
-              deltaY = thumb_y
-              deltaA = new_norm_vec
-              color = blue
-              distance = new_dist
+                start = (round(start[0] + thumb_x - deltaX), round(start[1] + thumb_y - deltaY))
+                end = (round(end[0] + thumb_x - deltaX), round(end[1] + thumb_y - deltaY))
+                new_norm_vec = calculateHandOreintation(results.multi_hand_world_landmarks[0].landmark)
+                rendering_deltaa = angle_between_vectors(new_norm_vec, deltaA)
+                rendering_deltax = thumb_x - deltaX
+                rendering_deltay = thumb_y - deltaY
+                deltaX = thumb_x
+                deltaY = thumb_y
+                deltaA = new_norm_vec
+                color = blue
+                distance = new_dist
             else:
-              color = red
-              lock = False
-              rendering_deltax = 0
-              rendering_deltay = 0
-              rendering_deltaa = 0
-          elif(on_square):
+                color = red
+                lock = False
+                rendering_deltax = 0
+                rendering_deltay = 0
+                rendering_deltaa = 0
+        elif(on_square):
             lock = True
             distance = math.sqrt(math.pow((thumb_x - pointer_x),2) + math.pow((thumb_y - pointer_y),2))
             deltaX = thumb_x
             deltaY = thumb_y
             deltaA = calculateHandOreintation(results.multi_hand_world_landmarks[0].landmark)
             color = blue
-          else:
+        else:
             color = red
 
-          if (lock): 
+        if (lock or on_square): 
             # buzz 
             print("buzzing")
             buzzing()
-          else: 
+        else: 
             print("not buzzing")
             not_buzzing()
 
-            if projected_points: 
-                if on_Cube(projected_points, thumb_x, thumb_y):
-                    print("TOUCHING CUBE THUMB")
-                    board.digital[thumb].write(1)
-                elif on_Cube(projected_points, pointer_x, pointer_y):
-                    print("TOUCHING CUBE POINTER")
-                    board.digital[3].write(1)
+
+            if On_Square(start, end, thumb_x, thumb_y):
+                print("TOUCHING CUBE THUMB")
+                board.digital[thumb].write(1)
+            elif On_Square(start, end, pointer_x, pointer_y):
+                print("TOUCHING CUBE POINTER")
+                board.digital[3].write(1)
                 
 
 
@@ -317,12 +346,14 @@ def visionProcessing():
             """
 
           
-          mp_drawing.draw_landmarks(
-              image,
-              hand_landmarks,
-              mp_hands.HAND_CONNECTIONS,
-              mp_drawing.DrawingSpec(color=color, thickness=2, circle_radius=4),
-            mp_drawing.DrawingSpec(color=color, thickness=2))
+        mp_drawing.draw_landmarks(
+            image,
+            hand_landmarks,
+            mp_hands.HAND_CONNECTIONS,
+            mp_drawing.DrawingSpec(color=color, thickness=2, circle_radius=4),
+        mp_drawing.DrawingSpec(color=color, thickness=2))
+
+
         # for hand_landmarks in results.multi_hand_world_landmarks:
         #           # Here is How to Get All the Coordinates
         #   for ids, landmrk in enumerate(hand_landmarks.landmark):
@@ -348,12 +379,12 @@ def visionProcessing():
       #print(start)
       #print(end)
       cv2.rectangle(image, start, end, green, 2)
-      print("rendering delta", rendering_deltaa)
-      projected_points = projection.render_cube(image, rendering_deltax, rendering_deltay, rendering_deltaa)
+      #print("rendering delta", rendering_deltaa)
+      #projected_points = projection.render_cube_test(image, rendering_deltax, rendering_deltay, rendering_deltaa)
       image_2 = cv2.flip(image, 1)
-      cv2.putText(image_2, my_str_1, (50, 50),font, font_scale, font_color, thickness)
-      cv2.putText(image_2, my_str_2, (50, 100),font, font_scale, font_color, thickness)
-      cv2.putText(image_2, my_str_3, (50, 150),font, font_scale, font_color, thickness)
+      #cv2.putText(image_2, my_str_1, (50, 50),font, font_scale, font_color, thickness)
+      #cv2.putText(image_2, my_str_2, (50, 100),font, font_scale, font_color, thickness)
+      #cv2.putText(image_2, my_str_3, (50, 150),font, font_scale, font_color, thickness)
       cv2.imshow('MediaPipe Hands', image_2)
       if cv2.waitKey(5) & 0xFF == 27:
         break
@@ -368,10 +399,14 @@ def visionProcessing():
 
 def buzzing(): 
     for pin in buzzer_pins:
+        msg = (pin-2)*2 + 1 
+        #Test.sendToArduino(str(msg), my_device)
         board.digital[pin].write(1)
 
 def not_buzzing(): 
     for pin in buzzer_pins:
+        msg = (pin-2)*2 + 2 
+        #Test.sendToArduino(str(msg), my_device)
         board.digital[pin].write(0)
     
   

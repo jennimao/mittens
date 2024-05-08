@@ -199,15 +199,12 @@ def render_cube(image, deltaX, deltaY, deltaZ, deltaA):
     scale_x = (image_width/(FOV_H * (init_z /Z_MEASUREMENT)))
     scale_y =  (image_height/(FOV_V * (init_z/Z_MEASUREMENT)))
 
-    #circle_pos = [round(circle_pos[0] + deltaX * scale_x), round(circle_pos[1] + deltaY * scale_y)]  # x, y
+    circle_pos = [round(circle_pos[0] + deltaX * scale_x), round(circle_pos[1] + deltaY * scale_y)]  # x, y
     angle_z = angle_z + deltaA
     #print(circle_pos)
-    #circle_pos = [150 + 300, 150 + 450]  # x, y (cube pos)
-
     
     #print("render", points_global)
     not_rendered = False
-
 
     points = []
       # all the cube vertices
@@ -256,47 +253,38 @@ def render_cube(image, deltaX, deltaY, deltaZ, deltaA):
     ])
 
     rotation_y = np.matrix([
-        [cos(angle), 0, sin(angle)],
+        [cos(deltaA), 0, sin(deltaA)],
         [0, 1, 0],
-        [-sin(angle), 0, cos(angle)],
+        [-sin(deltaA), 0, cos(deltaA)],
     ])
 
     rotation_x = np.matrix([
         [1, 0, 0],
-        [0, cos(angle_z), -sin(angle_z)],
-        [0, sin(angle_z), cos(angle_z)],
+        [0, cos(angle), -sin(angle)],
+        [0, sin(angle), cos(angle)],
     ])
 
     i = 0
+    new_points = [] 
     for point in my_points:
-        #rotated2d = np.dot(rotation_z, point.reshape((3, 1)))
-        #rotated2d = np.dot(rotation_y, rotated2d)
-        #rotated2d = np.dot(rotation_x, rotated2d)
+        rotated2d = np.dot(rotation_z, point.reshape((3, 1)))
+        rotated2d = np.dot(rotation_y, rotated2d)
+        rotated2d = np.dot(rotation_x, rotated2d)
 
         projected2d = np.dot(projection_matrix, point)
 
-        #print("x scale", scale_x)
-        #print("y scale", scale_y)
         x = int(projected2d[0][0] * scale_x) + circle_pos[0]
         y = int(projected2d[1][0] * scale_y) + circle_pos[1]
-        #print("here:", rotated2d)
+
         projected_points[i] = [x, y]
         rotated2d_global[i] = [float(point[0][0]), float(point[1][0]), float(point[2][0])]
-        #print(rotated2d)
-        #points_global.append(np.matrix(rotated2d))
-        cv2.circle(image, (round(x),round(y)), radius=5, color=(255, 255, 255), thickness=-1)
-        i += 1
-    # i = 0
-    
-    # for point in my_points:
-    #     rotated2d = np.dot(rotation_z, point.reshape((3, 1)))
-    #     rotated2d = np.dot(rotation_y, rotated2d)
-    #     rotated2d = np.dot(rotation_x, rotated2d)
-    #     rotated2d_global[i] = [float(rotated2d[0][0]), float(rotated2d[1][0]), float(rotated2d[2][0])]
-    #     i +=1
 
-         
-    #print("raw:", projected_points)
+        cv2.circle(image, (round(x),round(y)), radius=5, color=(255, 255, 255), thickness=-1)
+        new_points.append(rotated2d)
+        
+        i += 1
+    
+    my_points = new_points
 
     points_global = rotated2d_global
     print(points_global)
@@ -317,7 +305,7 @@ def render_cube_test(image, deltaX, deltaY, deltaA):
     global angle_z
     global points_global
     global my_points
-    
+
     scale = 1
     image_height, image_width, _ = image.shape
     scale_x = (image_width/(FOV_H * (init_z /Z_MEASUREMENT)))
